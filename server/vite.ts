@@ -6,7 +6,7 @@ import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
-// ✅ For __dirname support in ES modules
+// ✅ __dirname fix for ES modules
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,7 +51,7 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        __dirname,  // ✅ Fixed __dirname usage
+        __dirname,   // ✅ Fixed
         "..",
         "client",
         "index.html",
@@ -72,7 +72,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "../dist/client");  // ✅ Corrected path to dist/client
+  const distPath = path.resolve(__dirname, "../dist/client");  // ✅ Corrected
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -81,7 +81,6 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath));
-
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });

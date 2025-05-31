@@ -667,6 +667,53 @@ export default function SimpleWhiteboard() {
           )}
         </div>
       </div>
+
+      {/* Text Input Dialog */}
+      <Dialog open={showTextDialog} onOpenChange={setShowTextDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Text to Canvas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="text-input">Text Content</Label>
+              <Input
+                id="text-input"
+                value={currentText}
+                onChange={(e) => setCurrentText(e.target.value)}
+                placeholder="Enter your text here..."
+                className="mt-1"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>Font Size: {fontSize}px</Label>
+              <Slider
+                value={[fontSize]}
+                onValueChange={(value) => setFontSize(value[0])}
+                max={72}
+                min={12}
+                step={2}
+                className="mt-2"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowTextDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddText}
+                disabled={!currentText.trim()}
+              >
+                Add Text
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

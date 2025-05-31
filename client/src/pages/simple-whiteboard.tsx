@@ -29,7 +29,12 @@ import {
   Save,
   Share2,
   Camera,
-  Mic
+  Mic,
+  PaintBucket,
+  Brush,
+  Pencil,
+  Edit3,
+  Feather
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +43,13 @@ interface DrawingLine {
   points: number[];
   stroke: string;
   strokeWidth: number;
+  penType?: string;
+  eraserType?: string;
+  lineCap?: string;
+  lineJoin?: string;
+  tension?: number;
+  opacity?: number;
+  globalCompositeOperation?: string;
 }
 
 interface TextElement {
@@ -73,6 +85,34 @@ const sampleBackgrounds = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop'
 ];
 
+// 15 Different Pen Types
+const penTypes = [
+  { id: 'regular-pen', name: 'Regular Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.5 },
+  { id: 'fine-pen', name: 'Fine Pen', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.8 },
+  { id: 'brush-pen', name: 'Brush Pen', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.3 },
+  { id: 'marker', name: 'Marker', icon: PaintBucket, lineCap: 'butt', lineJoin: 'miter', tension: 0.1 },
+  { id: 'calligraphy', name: 'Calligraphy', icon: Feather, lineCap: 'butt', lineJoin: 'bevel', tension: 0.7 },
+  { id: 'highlighter', name: 'Highlighter', icon: Edit3, lineCap: 'butt', lineJoin: 'round', tension: 0.2 },
+  { id: 'watercolor', name: 'Watercolor', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.9 },
+  { id: 'sketch-pen', name: 'Sketch Pen', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.6 },
+  { id: 'fountain-pen', name: 'Fountain Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.4 },
+  { id: 'gel-pen', name: 'Gel Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.3 },
+  { id: 'ballpoint', name: 'Ballpoint', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.2 },
+  { id: 'felt-tip', name: 'Felt Tip', icon: PaintBucket, lineCap: 'round', lineJoin: 'round', tension: 0.4 },
+  { id: 'charcoal', name: 'Charcoal', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.8 },
+  { id: 'pastels', name: 'Pastels', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.7 },
+  { id: 'digital-pen', name: 'Digital Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.1 }
+];
+
+// 5 Different Eraser Types
+const eraserTypes = [
+  { id: 'soft-eraser', name: 'Soft Eraser', icon: Eraser, operation: 'destination-out' },
+  { id: 'hard-eraser', name: 'Hard Eraser', icon: Eraser, operation: 'destination-out' },
+  { id: 'precision-eraser', name: 'Precision Eraser', icon: Eraser, operation: 'destination-out' },
+  { id: 'background-eraser', name: 'Background Eraser', icon: Eraser, operation: 'destination-out' },
+  { id: 'magic-eraser', name: 'Magic Eraser', icon: Eraser, operation: 'destination-out' }
+];
+
 export default function SimpleWhiteboard() {
   const { toast } = useToast();
   const stageRef = useRef<Konva.Stage>(null);
@@ -95,6 +135,8 @@ export default function SimpleWhiteboard() {
   const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [selectedPenType, setSelectedPenType] = useState('regular-pen');
+  const [selectedEraserType, setSelectedEraserType] = useState('soft-eraser');
 
   // Detect mobile device
   useEffect(() => {
@@ -124,11 +166,35 @@ export default function SimpleWhiteboard() {
     }
     
     setIsDrawing(true);
+    
+    const selectedPen = penTypes.find(p => p.id === selectedPenType) || penTypes[0];
+    const selectedEraser = eraserTypes.find(e => e.id === selectedEraserType) || eraserTypes[0];
+    
+    let strokeColor = currentColor;
+    let globalCompositeOperation = 'source-over';
+    
+    if (tool === 'eraser') {
+      if (selectedEraserType === 'background-eraser') {
+        globalCompositeOperation = 'destination-out';
+        strokeColor = '#FFFFFF';
+      } else {
+        globalCompositeOperation = 'destination-out';
+        strokeColor = '#FFFFFF';
+      }
+    }
+    
     const newLine: DrawingLine = {
       tool,
       points: [pos.x, pos.y],
-      stroke: tool === 'eraser' ? '#FFFFFF' : currentColor,
+      stroke: strokeColor,
       strokeWidth: brushSize,
+      penType: tool === 'pen' ? selectedPenType : undefined,
+      eraserType: tool === 'eraser' ? selectedEraserType : undefined,
+      lineCap: tool === 'pen' ? selectedPen.lineCap : 'round',
+      lineJoin: tool === 'pen' ? selectedPen.lineJoin : 'round',
+      tension: tool === 'pen' ? selectedPen.tension : 0.5,
+      opacity: tool === 'highlighter' ? 0.5 : 1,
+      globalCompositeOperation
     };
     
     setLines([...lines, newLine]);
@@ -354,6 +420,58 @@ export default function SimpleWhiteboard() {
           })}
         </div>
       </div>
+
+      {/* Pen Types */}
+      {tool === 'pen' && (
+        <div>
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Pen Types</h3>
+          <div className="grid grid-cols-3 gap-1 max-h-40 overflow-y-auto">
+            {penTypes.map((penType) => {
+              const IconComponent = penType.icon;
+              return (
+                <Button
+                  key={penType.id}
+                  variant={selectedPenType === penType.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPenType(penType.id)}
+                  className="h-10 flex flex-col items-center justify-center p-1"
+                  title={penType.name}
+                >
+                  <IconComponent className="w-3 h-3 mb-0.5" />
+                  <span className="text-xs leading-none">{penType.name.split(' ')[0]}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Eraser Types */}
+      {tool === 'eraser' && (
+        <div>
+          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Eraser Types</h3>
+          <div className="grid grid-cols-1 gap-2">
+            {eraserTypes.map((eraserType) => {
+              const IconComponent = eraserType.icon;
+              return (
+                <Button
+                  key={eraserType.id}
+                  variant={selectedEraserType === eraserType.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedEraserType(eraserType.id)}
+                  className="h-10 flex items-center justify-start px-3"
+                >
+                  <IconComponent className="w-4 h-4 mr-2" />
+                  <span className="text-xs">{eraserType.name}</span>
+                </Button>
+              );
+            })}
+          </div>
+          <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded text-xs text-yellow-700 dark:text-yellow-300">
+            <strong>Background Eraser:</strong> Can erase background images
+          </div>
+        </div>
+      )}
 
       {/* Text Input */}
       {tool === 'text' && (
@@ -619,12 +737,11 @@ export default function SimpleWhiteboard() {
                   points={line.points}
                   stroke={line.stroke}
                   strokeWidth={line.strokeWidth}
-                  tension={0.5}
-                  lineCap="round"
-                  lineJoin="round"
-                  globalCompositeOperation={
-                    line.tool === 'eraser' ? 'destination-out' : 'source-over'
-                  }
+                  tension={line.tension || 0.5}
+                  lineCap={line.lineCap || 'round'}
+                  lineJoin={line.lineJoin || 'round'}
+                  opacity={line.opacity || 1}
+                  globalCompositeOperation={line.globalCompositeOperation || 'source-over'}
                 />
               ))}
               

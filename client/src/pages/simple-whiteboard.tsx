@@ -85,7 +85,7 @@ const sampleBackgrounds = [
   'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=600&fit=crop',
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
   'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1464822759844-d150baec0494?w=800&h=600&fit=crop',
+  'https://plus.unsplash.com/premium_photo-1674728198545-8fa4796b9297?q=80&w=1036&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   'https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=800&h=600&fit=crop',
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop'
 ];

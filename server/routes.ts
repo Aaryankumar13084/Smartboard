@@ -1,167 +1,263 @@
-import express, { Express } from "express";
-import { createServer, Server } from "http";
+import type { Express } from "express";
+import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import bodyParser from "body-parser";
-import dotenv from "dotenv";
-import { storage } from "./storage"; // Assume you have storage.ts with DB logic
-import { DrawingEventSchema } from "@shared/schema";
-
-dotenv.config();
+import { storage } from "./storage";
+import { insertBoardSchema, insertBoardSessionSchema, DrawingEventSchema, type DrawingEvent } from "@shared/schema";
 
 interface WebSocketClient extends WebSocket {
   boardId?: number;
   userId?: number;
 }
 
-const app: Express = express();
-app.use(bodyParser.json({ limit: '10mb' })); // Increase limit if needed
-app.use(bodyParser.urlencoded({ extended: true }));
+export async function registerRoutes(app: Express): Promise<Server> {
+  const httpServer = createServer(app);
 
-const httpServer = createServer(app);
-const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const boardClients = new Map<number, Set<WebSocketClient>>();
 
-const boardClients = new Map<number, Set<WebSocketClient>>();
+  wss.on('connection', (ws: WebSocketClient) => {
+    console.log('WebSocket client connected');
 
-wss.on('connection', (ws: WebSocketClient) => {
-  console.log('WebSocket client connected');
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
 
-  ws.on('message', async (message) => {
-    try {
-      const data = JSON.parse(message.toString());
+        if (data.type === 'join') {
+          const { boardId, userId } = data;
+          ws.boardId = boardId;
+          ws.userId = userId;
 
-      if (data.type === 'join') {
-        const { boardId, userId } = data;
-        ws.boardId = boardId;
-        ws.userId = userId;
-
-        if (!boardClients.has(boardId)) boardClients.set(boardId, new Set());
-        boardClients.get(boardId)!.add(ws);
-
-        await storage.createBoardSession({ boardId, userId });
-
-        const clients = boardClients.get(boardId)!;
-        const sessions = await storage.getBoardSessions(boardId);
-        clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'user_joined', userId, activeSessions: sessions.length }));
+          if (!boardClients.has(boardId)) {
+            boardClients.set(boardId, new Set());
           }
-        });
-      } else if (data.type === 'drawing') {
-        const drawingEvent = DrawingEventSchema.parse(data.event);
-        if (ws.boardId && boardClients.has(ws.boardId)) {
-          const clients = boardClients.get(ws.boardId)!;
+          boardClients.get(boardId)!.add(ws);
+          await storage.createBoardSession({ boardId, userId });
+
+          const clients = boardClients.get(boardId);
+          if (clients) {
+            const activeSessions = await storage.getBoardSessions(boardId);
+            clients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'user_joined',
+                  userId,
+                  activeSessions: activeSessions.length
+                }));
+              }
+            });
+          }
+        } else if (data.type === 'drawing') {
+          const drawingEvent = DrawingEventSchema.parse(data.event);
+          if (ws.boardId && boardClients.has(ws.boardId)) {
+            const clients = boardClients.get(ws.boardId);
+            clients?.forEach(client => {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'drawing',
+                  event: drawingEvent
+                }));
+              }
+            });
+          }
+
+          if (ws.boardId) {
+            const board = await storage.getBoard(ws.boardId);
+            if (board) {
+              const boardData = board.data as any || { events: [] };
+              boardData.events.push(drawingEvent);
+              await storage.updateBoard(ws.boardId, { data: boardData });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+
+    ws.on('close', async () => {
+      if (ws.boardId && ws.userId) {
+        const clients = boardClients.get(ws.boardId);
+        if (clients) {
+          clients.delete(ws);
+          if (clients.size === 0) {
+            boardClients.delete(ws.boardId);
+          }
+        }
+
+        await storage.deactivateBoardSession(ws.boardId, ws.userId);
+
+        if (clients && clients.size > 0) {
+          const activeSessions = await storage.getBoardSessions(ws.boardId);
           clients.forEach(client => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({ type: 'drawing', event: drawingEvent }));
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'user_left',
+                userId: ws.userId,
+                activeSessions: activeSessions.length
+              }));
             }
           });
         }
+      }
+      console.log('WebSocket client disconnected');
+    });
+  });
 
-        if (ws.boardId) {
-          const board = await storage.getBoard(ws.boardId);
-          const boardData = board?.data as any || { events: [] };
-          boardData.events.push(drawingEvent);
-          await storage.updateBoard(ws.boardId, { data: boardData });
-        }
+  // Board APIs
+  app.get('/api/boards', async (req, res) => {
+    try {
+      const userId = 1; 
+      const boards = await storage.getBoardsByOwner(userId);
+      res.json(boards);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch boards' });
+    }
+  });
+
+  app.post('/api/boards', async (req, res) => {
+    try {
+      const boardData = insertBoardSchema.parse(req.body);
+      const board = await storage.createBoard(boardData);
+      res.json(board);
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid board data' });
+    }
+  });
+
+  app.get('/api/boards/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const board = await storage.getBoard(id);
+      if (!board) return res.status(404).json({ message: 'Board not found' });
+      res.json(board);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch board' });
+    }
+  });
+
+  app.put('/api/boards/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const board = await storage.updateBoard(id, updates);
+      if (!board) return res.status(404).json({ message: 'Board not found' });
+      res.json(board);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update board' });
+    }
+  });
+
+  app.delete('/api/boards/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteBoard(id);
+      if (!deleted) return res.status(404).json({ message: 'Board not found' });
+      res.json({ message: 'Board deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to delete board' });
+    }
+  });
+
+  app.get('/api/boards/:id/sessions', async (req, res) => {
+    try {
+      const boardId = parseInt(req.params.id);
+      const sessions = await storage.getBoardSessions(boardId);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch board sessions' });
+    }
+  });
+
+  // 🌟 Gemini AI Endpoints 🌟
+  app.post('/api/ai/analyze-handwriting', async (req, res) => {
+    try {
+      const { imageData, prompt } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt || "Analyze handwriting and provide text recognition with corrections." },
+              { inlineData: { mimeType: "image/png", data: imageData.split(',')[1] } }
+            ]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.candidates?.[0]) {
+        res.json({ success: true, result: data.candidates[0].content.parts[0].text });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
       }
     } catch (error) {
-      console.error('WebSocket error:', error);
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to process AI request' });
     }
   });
 
-  ws.on('close', async () => {
-    if (ws.boardId && ws.userId) {
-      const clients = boardClients.get(ws.boardId);
-      clients?.delete(ws);
-      if (clients?.size === 0) boardClients.delete(ws.boardId);
-      await storage.deactivateBoardSession(ws.boardId, ws.userId);
+  app.post('/api/ai/smart-suggestions', async (req, res) => {
+    try {
+      const { content, context } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
 
-      if (clients && clients.size > 0) {
-        const sessions = await storage.getBoardSessions(ws.boardId);
-        clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'user_left', userId: ws.userId, activeSessions: sessions.length }));
-          }
-        });
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: `Based on this whiteboard content: "${content}", provide smart suggestions for: ${context}.` }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      if (data.candidates?.[0]) {
+        res.json({ success: true, suggestions: data.candidates[0].content.parts[0].text });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
       }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to get AI suggestions' });
     }
-    console.log('WebSocket client disconnected');
   });
-});
 
-// 📝 Board CRUD APIs
-app.get('/api/boards', async (req, res) => {
-  const boards = await storage.getBoardsByOwner(1);
-  res.json(boards);
-});
+  app.post('/api/ai/improve-sketch', async (req, res) => {
+    try {
+      const { imageData, improvements } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
 
-app.post('/api/boards', async (req, res) => {
-  const boardData = req.body;
-  const board = await storage.createBoard(boardData);
-  res.json(board);
-});
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: `Analyze this sketch and suggest improvements focusing on structure, proportions, details, and techniques.` },
+              { inlineData: { mimeType: "image/png", data: imageData.split(',')[1] } }
+            ]
+          }]
+        })
+      });
 
-app.get('/api/boards/:id', async (req, res) => {
-  const board = await storage.getBoard(+req.params.id);
-  board ? res.json(board) : res.status(404).json({ message: 'Not found' });
-});
+      const data = await response.json();
+      if (data.candidates?.[0]) {
+        res.json({ success: true, improvements: data.candidates[0].content.parts[0].text });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to analyze sketch' });
+    }
+  });
 
-// 🧠 AI Endpoints with Gemini Integration
-app.post('/api/ai/analyze-handwriting', async (req, res) => {
-  const { imageData, prompt } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API key' });
-
-  const base64 = extractBase64Image(imageData);
-  if (!base64) return res.status(400).json({ error: 'Invalid image data' });
-
-  const result = await callGeminiAPI(apiKey, [
-    { text: prompt || "Analyze handwriting and correct it" },
-    { inlineData: { mimeType: "image/png", data: base64 } }
-  ]);
-
-  result ? res.json({ success: true, result }) : res.status(500).json({ error: 'No response from Gemini' });
-});
-
-app.post('/api/ai/improve-sketch', async (req, res) => {
-  const { imageData, improvements } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'Missing Gemini API key' });
-
-  const base64 = extractBase64Image(imageData);
-  if (!base64) return res.status(400).json({ error: 'Invalid image data' });
-
-  const result = await callGeminiAPI(apiKey, [
-    { text: `Analyze this sketch and suggest improvements on ${improvements || "structure, proportions, and details"}` },
-    { inlineData: { mimeType: "image/png", data: base64 } }
-  ]);
-
-  result ? res.json({ success: true, result }) : res.status(500).json({ error: 'No response from Gemini' });
-});
-
-// Utility: Extract Base64 from data URL
-function extractBase64Image(dataUrl: string): string | null {
-  const match = /^data:image\/(png|jpeg|jpg);base64,(.+)$/.exec(dataUrl);
-  return match ? match[2] : null;
-}
-
-// Utility: Call Gemini API
-async function callGeminiAPI(apiKey: string, parts: any[]) {
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts }] })
-    });
-    const data = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    return null;
-  }
-}
-
-export function registerRoutes(app: Express): Server {
-  // Move all the route and middleware setup here (already done above)
   return httpServer;
 }

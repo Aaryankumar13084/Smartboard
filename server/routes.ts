@@ -161,4 +161,7 @@ async function callGeminiAPI(apiKey: string, parts: any[]) {
   }
 }
 
-httpServer.listen(3000, () => console.log('Server listening on port 3000'));
+export function registerRoutes(app: Express): Server {
+  // Move all the route and middleware setup here (already done above)
+  return httpServer;
+}

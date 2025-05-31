@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { 
   Pen, 
@@ -21,7 +22,14 @@ import {
   Image as ImageIcon,
   Menu,
   Palette,
-  Settings
+  Settings,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Save,
+  Share2,
+  Camera,
+  Mic
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +91,10 @@ export default function SimpleWhiteboard() {
   const [currentText, setCurrentText] = useState('');
   const [selectedBackground, setSelectedBackground] = useState('');
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
+  const [showTextDialog, setShowTextDialog] = useState(false);
+  const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // Detect mobile device
   useEffect(() => {
@@ -106,16 +118,8 @@ export default function SimpleWhiteboard() {
     if (!pos) return;
 
     if (tool === 'text') {
-      const newText: TextElement = {
-        id: `text-${Date.now()}`,
-        text: currentText || 'Click to edit',
-        x: pos.x,
-        y: pos.y,
-        fontSize: fontSize,
-        fill: currentColor,
-      };
-      setTextElements([...textElements, newText]);
-      setCurrentText('');
+      setTextPosition({ x: pos.x, y: pos.y });
+      setShowTextDialog(true);
       return;
     }
     
@@ -128,7 +132,7 @@ export default function SimpleWhiteboard() {
     };
     
     setLines([...lines, newLine]);
-  }, [tool, lines, textElements, currentColor, brushSize, fontSize, currentText]);
+  }, [tool, lines, currentColor, brushSize]);
 
   const handlePointerMove = useCallback((e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!isDrawing) return;
@@ -221,6 +225,100 @@ export default function SimpleWhiteboard() {
         handleAddBackground(result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddText = () => {
+    if (currentText.trim()) {
+      const newText: TextElement = {
+        id: `text-${Date.now()}`,
+        text: currentText,
+        x: textPosition.x,
+        y: textPosition.y,
+        fontSize: fontSize,
+        fill: currentColor,
+      };
+      setTextElements([...textElements, newText]);
+      setCurrentText('');
+      setShowTextDialog(false);
+      toast({
+        title: "Text Added",
+        description: "Text has been added to the canvas",
+      });
+    }
+  };
+
+  const handleZoomIn = () => {
+    const newZoom = Math.min(zoom * 1.2, 3);
+    setZoom(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    const newZoom = Math.max(zoom / 1.2, 0.3);
+    setZoom(newZoom);
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  const handleSave = () => {
+    if (stageRef.current) {
+      const dataURL = stageRef.current.toDataURL({ pixelRatio: 2 });
+      localStorage.setItem('whiteboard-data', JSON.stringify({
+        lines,
+        textElements,
+        backgroundImages,
+        timestamp: Date.now()
+      }));
+      toast({
+        title: "Saved Successfully",
+        description: "Your whiteboard has been saved locally",
+      });
+    }
+  };
+
+  const handleLoad = () => {
+    const saved = localStorage.getItem('whiteboard-data');
+    if (saved) {
+      const data = JSON.parse(saved);
+      setLines(data.lines || []);
+      setTextElements(data.textElements || []);
+      setBackgroundImages(data.backgroundImages || []);
+      toast({
+        title: "Loaded Successfully",
+        description: "Your whiteboard has been restored",
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    if (stageRef.current) {
+      const dataURL = stageRef.current.toDataURL({ pixelRatio: 2 });
+      if (navigator.share) {
+        try {
+          const blob = await fetch(dataURL).then(r => r.blob());
+          const file = new File([blob], 'whiteboard.png', { type: 'image/png' });
+          await navigator.share({
+            title: 'My Whiteboard',
+            text: 'Check out my digital whiteboard creation!',
+            files: [file]
+          });
+        } catch (error) {
+          navigator.clipboard.writeText(window.location.href);
+          toast({
+            title: "Link Copied",
+            description: "Whiteboard link copied to clipboard",
+          });
+        }
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link Copied",
+          description: "Whiteboard link copied to clipboard",
+        });
+      }
     }
   };
 
@@ -361,6 +459,27 @@ export default function SimpleWhiteboard() {
 
       <Separator />
 
+      {/* Zoom Controls */}
+      <div>
+        <h3 className="font-medium text-gray-900 dark:text-white mb-3">Zoom & View</h3>
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <Button onClick={handleZoomIn} variant="outline" size="sm">
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button onClick={handleResetZoom} variant="outline" size="sm">
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+          <Button onClick={handleZoomOut} variant="outline" size="sm">
+            <ZoomOut className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+          {Math.round(zoom * 100)}%
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Actions */}
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
@@ -383,6 +502,10 @@ export default function SimpleWhiteboard() {
             Redo
           </Button>
         </div>
+        <Button onClick={handleLoad} variant="outline" size="sm" className="w-full">
+          <Download className="w-4 h-4 mr-2" />
+          Load Saved
+        </Button>
         <Button
           onClick={handleClear}
           variant="outline"
@@ -409,6 +532,9 @@ export default function SimpleWhiteboard() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Drawing Tools</SheetTitle>
+                </SheetHeader>
                 <ToolPanelContent />
               </SheetContent>
             </Sheet>
@@ -418,8 +544,16 @@ export default function SimpleWhiteboard() {
           </h1>
         </div>
         <div className="flex items-center space-x-2">
+          <Button onClick={handleSave} size="sm" variant="outline">
+            <Save className="w-4 h-4 mr-1" />
+            Save
+          </Button>
+          <Button onClick={handleShare} size="sm" variant="outline">
+            <Share2 className="w-4 h-4 mr-1" />
+            Share
+          </Button>
           <Button onClick={handleExport} size="sm">
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 mr-1" />
             Export
           </Button>
         </div>
@@ -439,14 +573,24 @@ export default function SimpleWhiteboard() {
             ref={stageRef}
             width={stageSize.width}
             height={stageSize.height}
+            scaleX={zoom}
+            scaleY={zoom}
+            x={dragOffset.x}
+            y={dragOffset.y}
             onMouseDown={handlePointerDown}
             onMousemove={handlePointerMove}
             onMouseup={handlePointerUp}
             onTouchStart={handlePointerDown}
             onTouchMove={handlePointerMove}
             onTouchEnd={handlePointerUp}
+            draggable={tool === 'select'}
+            onDragEnd={(e) => {
+              if (tool === 'select') {
+                setDragOffset({ x: e.target.x(), y: e.target.y() });
+              }
+            }}
             style={{ 
-              cursor: tool === 'eraser' ? 'crosshair' : tool === 'text' ? 'text' : 'crosshair',
+              cursor: tool === 'eraser' ? 'crosshair' : tool === 'text' ? 'text' : tool === 'select' ? 'grab' : 'crosshair',
               touchAction: 'none'
             }}
           >
@@ -494,6 +638,11 @@ export default function SimpleWhiteboard() {
                   fontSize={textEl.fontSize}
                   fill={textEl.fill}
                   draggable
+                  onDragEnd={(e) => {
+                    setTextElements(textElements.map(t => 
+                      t.id === textEl.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
+                    ));
+                  }}
                   onDblClick={(e) => {
                     const newText = prompt('Edit text:', textEl.text);
                     if (newText !== null) {

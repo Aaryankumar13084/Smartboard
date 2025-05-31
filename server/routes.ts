@@ -188,5 +188,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gemini AI API routes
+  app.post('/api/ai/analyze-handwriting', async (req, res) => {
+    try {
+      const { imageData, prompt } = req.body;
+      
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API key not configured' });
+      }
+
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=' + process.env.GEMINI_API_KEY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt || "Analyze this handwriting and provide text recognition with corrections. Be concise and accurate." },
+              {
+                inlineData: {
+                  mimeType: "image/png",
+                  data: imageData.split(',')[1] // Remove data:image/png;base64, prefix
+                }
+              }
+            ]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0]) {
+        res.json({ 
+          success: true, 
+          result: data.candidates[0].content.parts[0].text 
+        });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to process AI request' });
+    }
+  });
+
+  app.post('/api/ai/smart-suggestions', async (req, res) => {
+    try {
+      const { content, context } = req.body;
+      
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API key not configured' });
+      }
+
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + process.env.GEMINI_API_KEY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Based on this whiteboard content: "${content}", provide smart suggestions for: ${context}. Give 3-5 brief, actionable suggestions in bullet points.`
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0]) {
+        res.json({ 
+          success: true, 
+          suggestions: data.candidates[0].content.parts[0].text 
+        });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to get AI suggestions' });
+    }
+  });
+
+  app.post('/api/ai/improve-sketch', async (req, res) => {
+    try {
+      const { imageData, improvements } = req.body;
+      
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API key not configured' });
+      }
+
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=' + process.env.GEMINI_API_KEY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: `Analyze this sketch and provide suggestions for improvements: ${improvements}. Focus on: structure, proportions, details, and artistic techniques. Provide specific, actionable advice.` },
+              {
+                inlineData: {
+                  mimeType: "image/png",
+                  data: imageData.split(',')[1]
+                }
+              }
+            ]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.candidates && data.candidates[0]) {
+        res.json({ 
+          success: true, 
+          improvements: data.candidates[0].content.parts[0].text 
+        });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to analyze sketch' });
+    }
+  });
+
   return httpServer;
 }

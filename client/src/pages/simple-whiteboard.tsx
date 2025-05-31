@@ -34,7 +34,12 @@ import {
   Brush,
   Pencil,
   Edit3,
-  Feather
+  Feather,
+  Sparkles,
+  Brain,
+  Wand2,
+  Eye,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -328,6 +333,9 @@ export default function SimpleWhiteboard() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [selectedPenType, setSelectedPenType] = useState('regular-pen');
   const [selectedEraserType, setSelectedEraserType] = useState('soft-eraser');
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiResults, setAiResults] = useState<string>('');
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
 
   // Detect mobile device
   useEffect(() => {
@@ -517,6 +525,141 @@ export default function SimpleWhiteboard() {
     }
   };
 
+  // AI Functions
+  const analyzeHandwriting = async () => {
+    if (!stageRef.current) return;
+    
+    setIsAIProcessing(true);
+    try {
+      const dataURL = stageRef.current.toDataURL();
+      
+      const response = await fetch('/api/ai/analyze-handwriting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: dataURL,
+          prompt: "Analyze the handwriting in this image and provide the text content with any suggested corrections."
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAiResults(data.result);
+        setShowAIPanel(true);
+        toast({
+          title: "AI Analysis Complete",
+          description: "Handwriting analysis results are ready!",
+        });
+      } else {
+        toast({
+          title: "AI Analysis Failed",
+          description: data.error || "Failed to analyze handwriting",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to AI service",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAIProcessing(false);
+    }
+  };
+
+  const getSmartSuggestions = async () => {
+    setIsAIProcessing(true);
+    try {
+      const textContent = textElements.map(t => t.text).join(' ');
+      const context = "creative brainstorming and content enhancement";
+      
+      const response = await fetch('/api/ai/smart-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: textContent || "whiteboard drawing and sketches",
+          context: context
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAiResults(data.suggestions);
+        setShowAIPanel(true);
+        toast({
+          title: "Smart Suggestions Ready",
+          description: "AI has generated creative suggestions for your board!",
+        });
+      } else {
+        toast({
+          title: "Suggestions Failed",
+          description: data.error || "Failed to get AI suggestions",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get smart suggestions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAIProcessing(false);
+    }
+  };
+
+  const improveSketch = async () => {
+    if (!stageRef.current) return;
+    
+    setIsAIProcessing(true);
+    try {
+      const dataURL = stageRef.current.toDataURL();
+      
+      const response = await fetch('/api/ai/improve-sketch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: dataURL,
+          improvements: "artistic quality, proportions, and overall composition"
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAiResults(data.improvements);
+        setShowAIPanel(true);
+        toast({
+          title: "Sketch Analysis Complete",
+          description: "AI has analyzed your sketch and provided improvement suggestions!",
+        });
+      } else {
+        toast({
+          title: "Sketch Analysis Failed",
+          description: data.error || "Failed to analyze sketch",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to analyze sketch",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAIProcessing(false);
+    }
+  };
+
   const handleZoomIn = () => {
     const newZoom = Math.min(zoom * 1.2, 3);
     setZoom(newZoom);
@@ -676,6 +819,52 @@ export default function SimpleWhiteboard() {
           </div>
         </div>
       )}
+
+      {/* AI Features */}
+      <div>
+        <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+          <Sparkles className="w-4 h-4 mr-2" />
+          AI Features
+        </h3>
+        <div className="grid grid-cols-1 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={analyzeHandwriting}
+            disabled={isAIProcessing}
+            className="h-10 flex items-center justify-start px-3"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            <span className="text-xs">Analyze Handwriting</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={getSmartSuggestions}
+            disabled={isAIProcessing}
+            className="h-10 flex items-center justify-start px-3"
+          >
+            <Brain className="w-4 h-4 mr-2" />
+            <span className="text-xs">Smart Suggestions</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={improveSketch}
+            disabled={isAIProcessing}
+            className="h-10 flex items-center justify-start px-3"
+          >
+            <Wand2 className="w-4 h-4 mr-2" />
+            <span className="text-xs">Improve Sketch</span>
+          </Button>
+        </div>
+        {isAIProcessing && (
+          <div className="mt-2 flex items-center text-sm text-blue-600 dark:text-blue-400">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+            AI Processing...
+          </div>
+        )}
+      </div>
 
       {/* Text Input */}
       {tool === 'text' && (
@@ -1049,6 +1238,50 @@ export default function SimpleWhiteboard() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Results Panel */}
+          {showAIPanel && (
+            <div className="fixed inset-y-0 right-0 w-80 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">AI Analysis Results</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAIPanel(false)}
+                  className="p-1 h-8 w-8"
+                >
+                  ×
+                </Button>
+              </div>
+              <div className="flex-1 p-4 overflow-y-auto">
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                    {aiResults}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(aiResults);
+                    toast({
+                      title: "Copied to Clipboard",
+                      description: "AI results have been copied to clipboard",
+                    });
+                  }}
+                  className="w-full"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Copy Results
+                </Button>
               </div>
             </div>
           )}

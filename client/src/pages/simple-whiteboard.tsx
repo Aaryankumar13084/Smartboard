@@ -85,32 +85,223 @@ const sampleBackgrounds = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop'
 ];
 
-// 15 Different Pen Types
+// 15 Different Pen Types with Unique Properties
 const penTypes = [
-  { id: 'regular-pen', name: 'Regular Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.5 },
-  { id: 'fine-pen', name: 'Fine Pen', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.8 },
-  { id: 'brush-pen', name: 'Brush Pen', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.3 },
-  { id: 'marker', name: 'Marker', icon: PaintBucket, lineCap: 'butt', lineJoin: 'miter', tension: 0.1 },
-  { id: 'calligraphy', name: 'Calligraphy', icon: Feather, lineCap: 'butt', lineJoin: 'bevel', tension: 0.7 },
-  { id: 'highlighter', name: 'Highlighter', icon: Edit3, lineCap: 'butt', lineJoin: 'round', tension: 0.2 },
-  { id: 'watercolor', name: 'Watercolor', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.9 },
-  { id: 'sketch-pen', name: 'Sketch Pen', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.6 },
-  { id: 'fountain-pen', name: 'Fountain Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.4 },
-  { id: 'gel-pen', name: 'Gel Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.3 },
-  { id: 'ballpoint', name: 'Ballpoint', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.2 },
-  { id: 'felt-tip', name: 'Felt Tip', icon: PaintBucket, lineCap: 'round', lineJoin: 'round', tension: 0.4 },
-  { id: 'charcoal', name: 'Charcoal', icon: Pencil, lineCap: 'round', lineJoin: 'round', tension: 0.8 },
-  { id: 'pastels', name: 'Pastels', icon: Brush, lineCap: 'round', lineJoin: 'round', tension: 0.7 },
-  { id: 'digital-pen', name: 'Digital Pen', icon: Pen, lineCap: 'round', lineJoin: 'round', tension: 0.1 }
+  { 
+    id: 'regular-pen', 
+    name: 'Regular Pen', 
+    icon: Pen, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.5, 
+    opacity: 1.0, 
+    strokeMultiplier: 1.0,
+    description: 'Daily writing pen'
+  },
+  { 
+    id: 'fine-pen', 
+    name: 'Fine Pen', 
+    icon: Pencil, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.8, 
+    opacity: 0.9, 
+    strokeMultiplier: 0.5,
+    description: 'Detailed line work'
+  },
+  { 
+    id: 'brush-pen', 
+    name: 'Brush Pen', 
+    icon: Brush, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.3, 
+    opacity: 0.8, 
+    strokeMultiplier: 2.0,
+    description: 'Artistic brush strokes'
+  },
+  { 
+    id: 'marker', 
+    name: 'Marker', 
+    icon: PaintBucket, 
+    lineCap: 'butt', 
+    lineJoin: 'miter', 
+    tension: 0.1, 
+    opacity: 1.0, 
+    strokeMultiplier: 1.5,
+    description: 'Bold presentation lines'
+  },
+  { 
+    id: 'calligraphy', 
+    name: 'Calligraphy', 
+    icon: Feather, 
+    lineCap: 'butt', 
+    lineJoin: 'bevel', 
+    tension: 0.7, 
+    opacity: 1.0, 
+    strokeMultiplier: 1.8,
+    description: 'Elegant writing style'
+  },
+  { 
+    id: 'highlighter', 
+    name: 'Highlighter', 
+    icon: Edit3, 
+    lineCap: 'butt', 
+    lineJoin: 'round', 
+    tension: 0.2, 
+    opacity: 0.4, 
+    strokeMultiplier: 3.0,
+    description: 'Highlight important text'
+  },
+  { 
+    id: 'watercolor', 
+    name: 'Watercolor', 
+    icon: Brush, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.9, 
+    opacity: 0.6, 
+    strokeMultiplier: 2.5,
+    description: 'Painting and shading'
+  },
+  { 
+    id: 'sketch-pen', 
+    name: 'Sketch Pen', 
+    icon: Pencil, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.6, 
+    opacity: 0.8, 
+    strokeMultiplier: 1.2,
+    description: 'Drawing and sketching'
+  },
+  { 
+    id: 'fountain-pen', 
+    name: 'Fountain Pen', 
+    icon: Pen, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.4, 
+    opacity: 0.9, 
+    strokeMultiplier: 1.3,
+    description: 'Classic smooth writing'
+  },
+  { 
+    id: 'gel-pen', 
+    name: 'Gel Pen', 
+    icon: Pen, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.3, 
+    opacity: 1.0, 
+    strokeMultiplier: 0.8,
+    description: 'Smooth stylish writing'
+  },
+  { 
+    id: 'ballpoint', 
+    name: 'Ballpoint', 
+    icon: Pen, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.2, 
+    opacity: 1.0, 
+    strokeMultiplier: 0.7,
+    description: 'Everyday writing pen'
+  },
+  { 
+    id: 'felt-tip', 
+    name: 'Felt Tip', 
+    icon: PaintBucket, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.4, 
+    opacity: 0.9, 
+    strokeMultiplier: 1.6,
+    description: 'Vibrant coloring'
+  },
+  { 
+    id: 'charcoal', 
+    name: 'Charcoal', 
+    icon: Pencil, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.8, 
+    opacity: 0.7, 
+    strokeMultiplier: 2.2,
+    description: 'Artistic shading'
+  },
+  { 
+    id: 'pastels', 
+    name: 'Pastels', 
+    icon: Brush, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.7, 
+    opacity: 0.6, 
+    strokeMultiplier: 2.8,
+    description: 'Soft artistic strokes'
+  },
+  { 
+    id: 'digital-pen', 
+    name: 'Digital Pen', 
+    icon: Pen, 
+    lineCap: 'round', 
+    lineJoin: 'round', 
+    tension: 0.1, 
+    opacity: 1.0, 
+    strokeMultiplier: 1.0,
+    description: 'Precise digital drawing'
+  }
 ];
 
-// 5 Different Eraser Types
+// 5 Different Eraser Types with Unique Properties
 const eraserTypes = [
-  { id: 'soft-eraser', name: 'Soft Eraser', icon: Eraser, operation: 'destination-out' },
-  { id: 'hard-eraser', name: 'Hard Eraser', icon: Eraser, operation: 'destination-out' },
-  { id: 'precision-eraser', name: 'Precision Eraser', icon: Eraser, operation: 'destination-out' },
-  { id: 'background-eraser', name: 'Background Eraser', icon: Eraser, operation: 'destination-out' },
-  { id: 'magic-eraser', name: 'Magic Eraser', icon: Eraser, operation: 'destination-out' }
+  { 
+    id: 'soft-eraser', 
+    name: 'Soft Eraser', 
+    icon: Eraser, 
+    operation: 'destination-out',
+    opacity: 0.6,
+    strokeMultiplier: 1.5,
+    description: 'Gentle erasing for pencil marks'
+  },
+  { 
+    id: 'hard-eraser', 
+    name: 'Hard Eraser', 
+    icon: Eraser, 
+    operation: 'destination-out',
+    opacity: 1.0,
+    strokeMultiplier: 1.0,
+    description: 'Strong erasing for tough marks'
+  },
+  { 
+    id: 'precision-eraser', 
+    name: 'Precision Eraser', 
+    icon: Eraser, 
+    operation: 'destination-out',
+    opacity: 1.0,
+    strokeMultiplier: 0.5,
+    description: 'Small detailed erasing'
+  },
+  { 
+    id: 'background-eraser', 
+    name: 'Background Eraser', 
+    icon: Eraser, 
+    operation: 'destination-out',
+    opacity: 1.0,
+    strokeMultiplier: 2.0,
+    description: 'Can erase background images',
+    canEraseBackground: true
+  },
+  { 
+    id: 'magic-eraser', 
+    name: 'Magic Eraser', 
+    icon: Eraser, 
+    operation: 'destination-out',
+    opacity: 0.8,
+    strokeMultiplier: 3.0,
+    description: 'Large area quick erasing'
+  }
 ];
 
 export default function SimpleWhiteboard() {
@@ -183,17 +374,29 @@ export default function SimpleWhiteboard() {
       }
     }
     
+    // Calculate actual stroke width based on pen/eraser type
+    let actualStrokeWidth = brushSize;
+    let actualOpacity = 1;
+    
+    if (tool === 'pen') {
+      actualStrokeWidth = brushSize * selectedPen.strokeMultiplier;
+      actualOpacity = selectedPen.opacity;
+    } else if (tool === 'eraser') {
+      actualStrokeWidth = brushSize * selectedEraser.strokeMultiplier;
+      actualOpacity = selectedEraser.opacity;
+    }
+
     const newLine: DrawingLine = {
       tool,
       points: [pos.x, pos.y],
       stroke: strokeColor,
-      strokeWidth: brushSize,
+      strokeWidth: actualStrokeWidth,
       penType: tool === 'pen' ? selectedPenType : undefined,
       eraserType: tool === 'eraser' ? selectedEraserType : undefined,
       lineCap: tool === 'pen' ? selectedPen.lineCap as any : 'round',
       lineJoin: tool === 'pen' ? selectedPen.lineJoin as any : 'round',
       tension: tool === 'pen' ? selectedPen.tension : 0.5,
-      opacity: tool === 'highlighter' ? 0.5 : 1,
+      opacity: actualOpacity,
       globalCompositeOperation
     };
     
@@ -435,7 +638,7 @@ export default function SimpleWhiteboard() {
                   size="sm"
                   onClick={() => setSelectedPenType(penType.id)}
                   className="h-10 flex flex-col items-center justify-center p-1"
-                  title={penType.name}
+                  title={`${penType.name} - ${penType.description}`}
                 >
                   <IconComponent className="w-3 h-3 mb-0.5" />
                   <span className="text-xs leading-none">{penType.name.split(' ')[0]}</span>
@@ -460,6 +663,7 @@ export default function SimpleWhiteboard() {
                   size="sm"
                   onClick={() => setSelectedEraserType(eraserType.id)}
                   className="h-10 flex items-center justify-start px-3"
+                  title={`${eraserType.name} - ${eraserType.description}`}
                 >
                   <IconComponent className="w-4 h-4 mr-2" />
                   <span className="text-xs">{eraserType.name}</span>
@@ -797,11 +1001,55 @@ export default function SimpleWhiteboard() {
           
           {/* Mobile Tool Indicator */}
           {isMobile && (
-            <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-2 flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-primary"></div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
-                {tool}
-              </span>
+            <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-3 py-2 flex flex-col items-center space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-primary"></div>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                  {tool}
+                </span>
+              </div>
+              {tool === 'pen' && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {penTypes.find(p => p.id === selectedPenType)?.name}
+                </div>
+              )}
+              {tool === 'eraser' && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {eraserTypes.find(e => e.id === selectedEraserType)?.name}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pen/Eraser Properties Indicator - Desktop */}
+          {!isMobile && tool !== 'text' && (
+            <div className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-3 max-w-xs">
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="w-4 h-4 rounded-full border-2 border-gray-300" 
+                    style={{ 
+                      backgroundColor: tool === 'eraser' ? '#ff6b6b' : currentColor,
+                      width: `${Math.max(8, Math.min(20, brushSize / 2))}px`,
+                      height: `${Math.max(8, Math.min(20, brushSize / 2))}px`
+                    }}
+                  ></div>
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {tool === 'pen' 
+                        ? penTypes.find(p => p.id === selectedPenType)?.name
+                        : eraserTypes.find(e => e.id === selectedEraserType)?.name
+                      }
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {tool === 'pen' 
+                        ? penTypes.find(p => p.id === selectedPenType)?.description
+                        : eraserTypes.find(e => e.id === selectedEraserType)?.description
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

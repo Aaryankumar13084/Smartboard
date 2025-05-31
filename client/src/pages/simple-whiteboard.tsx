@@ -45,8 +45,8 @@ interface DrawingLine {
   strokeWidth: number;
   penType?: string;
   eraserType?: string;
-  lineCap?: string;
-  lineJoin?: string;
+  lineCap?: 'butt' | 'round' | 'square';
+  lineJoin?: 'bevel' | 'round' | 'miter';
   tension?: number;
   opacity?: number;
   globalCompositeOperation?: string;
@@ -190,8 +190,8 @@ export default function SimpleWhiteboard() {
       strokeWidth: brushSize,
       penType: tool === 'pen' ? selectedPenType : undefined,
       eraserType: tool === 'eraser' ? selectedEraserType : undefined,
-      lineCap: tool === 'pen' ? selectedPen.lineCap : 'round',
-      lineJoin: tool === 'pen' ? selectedPen.lineJoin : 'round',
+      lineCap: tool === 'pen' ? selectedPen.lineCap as any : 'round',
+      lineJoin: tool === 'pen' ? selectedPen.lineJoin as any : 'round',
       tension: tool === 'pen' ? selectedPen.tension : 0.5,
       opacity: tool === 'highlighter' ? 0.5 : 1,
       globalCompositeOperation
@@ -712,8 +712,8 @@ export default function SimpleWhiteboard() {
               touchAction: 'none'
             }}
           >
+            {/* Background Layer - Protected from normal erasers */}
             <Layer>
-              {/* Background Images */}
               {backgroundImages.map((bg, i) => (
                 <KonvaImage
                   key={bg.id}
@@ -729,19 +729,25 @@ export default function SimpleWhiteboard() {
                   })()}
                 />
               ))}
-              
-              {/* Drawing Lines */}
-              {lines.map((line, i) => (
+            </Layer>
+            
+            {/* Drawing Layer - Only affected by normal erasers */}
+            <Layer>
+              {lines.filter(line => line.tool !== 'eraser' || line.eraserType !== 'background-eraser').map((line, i) => (
                 <Line
                   key={i}
                   points={line.points}
                   stroke={line.stroke}
                   strokeWidth={line.strokeWidth}
                   tension={line.tension || 0.5}
-                  lineCap={line.lineCap || 'round'}
-                  lineJoin={line.lineJoin || 'round'}
+                  lineCap={line.lineCap as any || 'round'}
+                  lineJoin={line.lineJoin as any || 'round'}
                   opacity={line.opacity || 1}
-                  globalCompositeOperation={line.globalCompositeOperation || 'source-over'}
+                  globalCompositeOperation={
+                    line.tool === 'eraser' && line.eraserType !== 'background-eraser' 
+                      ? 'destination-out' 
+                      : (line.globalCompositeOperation as any) || 'source-over'
+                  }
                 />
               ))}
               
@@ -768,6 +774,22 @@ export default function SimpleWhiteboard() {
                       ));
                     }
                   }}
+                />
+              ))}
+            </Layer>
+            
+            {/* Background Eraser Layer - Only for background erasing */}
+            <Layer>
+              {lines.filter(line => line.tool === 'eraser' && line.eraserType === 'background-eraser').map((line, i) => (
+                <Line
+                  key={`bg-erase-${i}`}
+                  points={line.points}
+                  stroke="#FFFFFF"
+                  strokeWidth={line.strokeWidth}
+                  tension={line.tension || 0.5}
+                  lineCap={line.lineCap as any || 'round'}
+                  lineJoin={line.lineJoin as any || 'round'}
+                  globalCompositeOperation="destination-out"
                 />
               ))}
             </Layer>

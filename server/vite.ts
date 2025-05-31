@@ -1,4 +1,4 @@
-import express, { type Express } from "express"; 
+ import express, { type Express } from "express"; 
 import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
@@ -51,8 +51,7 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        __dirname,
-        "..",
+        process.cwd(),
         "client",
         "index.html",
       );

@@ -4,14 +4,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
-import Whiteboard from "@/pages/whiteboard";
+import SimpleWhiteboard from "@/pages/simple-whiteboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Whiteboard} />
-      <Route path="/board/:id" component={Whiteboard} />
+      <Route path="/" component={SimpleWhiteboard} />
+      <Route path="/board/:id" component={SimpleWhiteboard} />
       <Route component={NotFound} />
     </Switch>
   );

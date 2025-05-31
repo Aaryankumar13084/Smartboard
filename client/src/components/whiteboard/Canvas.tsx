@@ -40,16 +40,17 @@ export function Canvas({
 
   // Handle remote drawing events
   useEffect(() => {
-    if (onRemoteDrawingEvent) {
-      const handleRemoteEvent = (event: DrawingEvent) => {
-        applyDrawingEvent(event);
-      };
-      
-      // This would be called from the WebSocket hook
-      // For now, we'll just expose the function
-      (window as any).handleRemoteDrawingEvent = handleRemoteEvent;
-    }
-  }, [applyDrawingEvent, onRemoteDrawingEvent]);
+    const handleRemoteEvent = (event: DrawingEvent) => {
+      applyDrawingEvent(event);
+    };
+    
+    // Store the function globally for WebSocket callbacks
+    (window as any).handleRemoteDrawingEvent = handleRemoteEvent;
+    
+    return () => {
+      delete (window as any).handleRemoteDrawingEvent;
+    };
+  }, [applyDrawingEvent]);
 
   // Resize stage to fit container
   useEffect(() => {

@@ -68,8 +68,11 @@ export class MemStorage implements IStorage {
     const id = this.currentBoardId++;
     const now = new Date();
     const board: Board = { 
-      ...insertBoard, 
-      id, 
+      id,
+      name: insertBoard.name,
+      ownerId: insertBoard.ownerId,
+      data: insertBoard.data || {},
+      isPublic: insertBoard.isPublic || false,
       createdAt: now,
       updatedAt: now
     };
@@ -97,8 +100,9 @@ export class MemStorage implements IStorage {
   async createBoardSession(insertSession: InsertBoardSession): Promise<BoardSession> {
     const id = this.currentSessionId++;
     const session: BoardSession = { 
-      ...insertSession, 
-      id, 
+      id,
+      boardId: insertSession.boardId,
+      userId: insertSession.userId,
       isActive: true,
       joinedAt: new Date()
     };

@@ -5,14 +5,14 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-
+  
   // Board methods
   getBoard(id: number): Promise<Board | undefined>;
   getBoardsByOwner(ownerId: number): Promise<Board[]>;
   createBoard(board: InsertBoard): Promise<Board>;
   updateBoard(id: number, data: Partial<Board>): Promise<Board | undefined>;
   deleteBoard(id: number): Promise<boolean>;
-
+  
   // Board session methods
   createBoardSession(session: InsertBoardSession): Promise<BoardSession>;
   getBoardSessions(boardId: number): Promise<BoardSession[]>;
@@ -83,7 +83,7 @@ export class MemStorage implements IStorage {
   async updateBoard(id: number, data: Partial<Board>): Promise<Board | undefined> {
     const board = this.boards.get(id);
     if (!board) return undefined;
-
+    
     const updatedBoard: Board = { 
       ...board, 
       ...data, 
@@ -119,7 +119,7 @@ export class MemStorage implements IStorage {
   async updateBoardSession(id: number, data: Partial<BoardSession>): Promise<BoardSession | undefined> {
     const session = this.boardSessions.get(id);
     if (!session) return undefined;
-
+    
     const updatedSession: BoardSession = { ...session, ...data };
     this.boardSessions.set(id, updatedSession);
     return updatedSession;
@@ -129,12 +129,12 @@ export class MemStorage implements IStorage {
     const sessions = Array.from(this.boardSessions.values()).filter(
       (session) => session.boardId === boardId && session.userId === userId && session.isActive,
     );
-
+    
     sessions.forEach(session => {
       session.isActive = false;
       this.boardSessions.set(session.id, session);
     });
-
+    
     return sessions.length > 0;
   }
 }

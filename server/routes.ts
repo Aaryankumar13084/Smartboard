@@ -259,5 +259,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/ai/review-drawing', async (req, res) => {
+    try {
+      const { imageData } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: "Analyze this drawing. Give it a score out of 10 and provide exactly 2 specific tips for improvement. Format the response as JSON with 'score' (number) and 'tips' (array of strings) fields." },
+              { inlineData: { mimeType: "image/png", data: imageData.split(',')[1] } }
+            ]
+          }],
+          generationConfig: {
+            response_mime_type: "application/json",
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (data.candidates?.[0]) {
+        const result = JSON.parse(data.candidates[0].content.parts[0].text);
+        res.json({ success: true, ...result });
+      } else {
+        res.status(500).json({ error: 'No response from Gemini API' });
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      res.status(500).json({ error: 'Failed to process AI review' });
+    }
+  });
+
+  app.post('/api/ai/generate-image', async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}&nologo=true`;
+      res.json({ success: true, imageUrl });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate image' });
+    }
+  });
+
   return httpServer;
 }

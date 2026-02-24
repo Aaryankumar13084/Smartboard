@@ -70,9 +70,9 @@ export class MemStorage implements IStorage {
     const board: Board = { 
       id,
       name: insertBoard.name,
-      ownerId: insertBoard.ownerId,
+      ownerId: insertBoard.ownerId ?? 0,
       data: insertBoard.data || {},
-      isPublic: insertBoard.isPublic || false,
+      isPublic: insertBoard.isPublic ?? false,
       createdAt: now,
       updatedAt: now
     };
@@ -101,8 +101,8 @@ export class MemStorage implements IStorage {
     const id = this.currentSessionId++;
     const session: BoardSession = { 
       id,
-      boardId: insertSession.boardId,
-      userId: insertSession.userId,
+      boardId: insertSession.boardId ?? 0,
+      userId: insertSession.userId ?? 0,
       isActive: true,
       joinedAt: new Date()
     };

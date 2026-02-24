@@ -37,35 +37,26 @@ async function startServer() {
     next();
   });
 
-  // Register routes
-  await registerRoutes(app);
+  const httpServer = await registerRoutes(app);
 
-  // Error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
 
-    // Optional: log error here
     log(`Error: ${message}`);
-
-    // Don't throw err here to avoid crashing server
   });
 
-  // Setup Vite or serve static depending on environment
   if (app.get("env") === "development") {
-    // Vite dev server for frontend + HMR
-    await setupVite(app, app);
+    await setupVite(app, httpServer);
   } else {
-    // Serve built static files in production
     serveStatic(app);
   }
 
-  // Use environment PORT if set (Vercel sets process.env.PORT)
   const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
-  app.listen(port, () => {
+  httpServer.listen(port, "0.0.0.0", () => {
     log(`Server is running on port ${port}`);
   });
 }

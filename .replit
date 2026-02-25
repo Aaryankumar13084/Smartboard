@@ -9,6 +9,7 @@ channel = "stable-24_05"
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["node", "./dist/index.cjs"]
+publicDir = "dist/public"
 
 [[ports]]
 localPort = 5000
@@ -34,3 +35,6 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[agent]
+expertMode = true

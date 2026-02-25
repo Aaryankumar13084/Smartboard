@@ -271,22 +271,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           contents: [{
             parts: [
-              { text: "Analyze this drawing. Give it a score out of 10 and provide exactly 2 specific tips for improvement. Format the response as JSON with 'score' (number) and 'tips' (array of strings) fields." },
+              { text: "Analyze this drawing. Give it a score out of 10 and provide exactly 2 specific tips for improvement. Format the response as a JSON object with 'score' (number) and 'tips' (array of strings) fields. IMPORTANT: Only return the JSON object, no markdown formatting." },
               { inlineData: { mimeType: "image/png", data: imageData.split(',')[1] } }
             ]
-          }],
-          generationConfig: {
-            response_mime_type: "application/json",
-          }
+          }]
         })
       });
 
       const data = await response.json();
-      if (data.candidates?.[0]) {
-        const result = JSON.parse(data.candidates[0].content.parts[0].text);
-        res.json({ success: true, ...result });
+      console.log('Gemini API response:', JSON.stringify(data));
+
+      if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        let text = data.candidates[0].content.parts[0].text;
+        // Strip any markdown or non-json junk
+        text = text.replace(/```json\n?|\n?```/g, '').trim();
+        try {
+          const result = JSON.parse(text);
+          res.json({ success: true, ...result });
+        } catch (e) {
+          console.error('JSON Parse error on Gemini response:', text);
+          res.status(500).json({ error: 'Failed to parse AI response', raw: text });
+        }
       } else {
-        res.status(500).json({ error: 'No response from Gemini API' });
+        console.error('Invalid Gemini response structure:', data);
+        res.status(500).json({ error: 'No response from Gemini API', details: data });
       }
     } catch (error) {
       console.error('Gemini API error:', error);

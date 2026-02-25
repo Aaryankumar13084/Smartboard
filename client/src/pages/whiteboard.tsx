@@ -322,16 +322,77 @@ export default function Whiteboard() {
     });
   };
 
-  const handleToggleVoiceControl = () => {
-    setVoiceControlActive(!voiceControlActive);
-    if (!voiceControlActive) {
+  const handleReviewDrawing = async () => {
+    if (!stageRef.current) return;
+    
+    try {
+      toast({ title: "AI Art Critic", description: "Analyzing your drawing..." });
+      const imageData = stageRef.current.toDataURL();
+      const response = await apiRequest('POST', '/api/ai/review-drawing', { imageData });
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: `Art Critic Score: ${data.score}/10`,
+          description: (
+            <div className="mt-2 space-y-2">
+              <p className="font-semibold text-sm">Improvement Tips:</p>
+              <ul className="list-disc pl-4 text-xs space-y-1">
+                {data.tips.map((tip: string, i: number) => <li key={i}>{tip}</li>)}
+              </ul>
+            </div>
+          ),
+          duration: 10000,
+        });
+      } else {
+        throw new Error(data.error || 'Failed to get review');
+      }
+    } catch (error) {
       toast({
-        title: "Voice Control",
-        description: "Voice control activated",
+        title: "AI Analysis Failed",
+        description: error instanceof Error ? error.message : "Could not reach the AI Critic",
+        variant: "destructive",
       });
-      setTimeout(() => setVoiceControlActive(false), 5000);
     }
   };
+
+  const handleGenerateImage = async (prompt: string) => {
+    try {
+      toast({ title: "Image Studio", description: "Generating image..." });
+      const response = await apiRequest('POST', '/api/ai/generate-image', { prompt });
+      const data = await response.json();
+      
+      if (data.success) {
+        // In a real app, we'd add this to the Konva stage. For now, show success and offer download.
+        toast({
+          title: "Image Generated",
+          description: (
+            <div className="mt-2 space-y-2">
+              <img src={data.imageUrl} alt="Generated" className="w-full h-32 object-cover rounded" />
+              <Button size="sm" className="w-full" onClick={() => {
+                const link = document.createElement('a');
+                link.href = data.imageUrl;
+                link.download = `generated-${Date.now()}.png`;
+                link.target = "_blank";
+                link.click();
+              }}>
+                Download Image
+              </Button>
+            </div>
+          ),
+          duration: 15000,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [imagePrompt, setImagePrompt] = useState("");
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -357,14 +418,48 @@ export default function Whiteboard() {
           onToggleGestures={() => {}}
         />
 
-        <Canvas
-          drawingState={state.drawing}
-          showGrid={state.canvas.showGrid}
-          zoom={state.canvas.zoom}
-          onZoomChange={handleZoomChange}
-          onDrawingEvent={handleDrawingEvent}
-          onRemoteDrawingEvent={() => {}}
-        />
+        <div className="flex-1 flex flex-col relative">
+          <div className="absolute top-4 right-4 z-40 flex flex-col space-y-2 max-w-xs">
+            <Button 
+              onClick={handleReviewDrawing}
+              variant="secondary"
+              className="shadow-lg bg-gradient-to-r from-purple-500 to-blue-500 text-white border-none hover:from-purple-600 hover:to-blue-600"
+            >
+              Review My Drawing
+            </Button>
+            
+            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex space-x-2">
+              <input 
+                type="text" 
+                placeholder="Image Studio prompt..."
+                className="flex-1 bg-transparent text-xs outline-none px-1 dark:text-white"
+                value={imagePrompt}
+                onChange={(e) => setImagePrompt(e.target.value)}
+              />
+              <Button 
+                size="sm" 
+                className="h-8 text-[10px]"
+                onClick={() => {
+                  if (imagePrompt) {
+                    handleGenerateImage(imagePrompt);
+                    setImagePrompt("");
+                  }
+                }}
+              >
+                Generate
+              </Button>
+            </div>
+          </div>
+
+          <Canvas
+            drawingState={state.drawing}
+            showGrid={state.canvas.showGrid}
+            zoom={state.canvas.zoom}
+            onZoomChange={handleZoomChange}
+            onDrawingEvent={handleDrawingEvent}
+            onRemoteDrawingEvent={() => {}}
+          />
+        </div>
 
         <PropertiesPanel
           isOpen={propertiesPanelOpen}

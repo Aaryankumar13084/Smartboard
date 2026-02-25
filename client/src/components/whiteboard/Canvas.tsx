@@ -26,7 +26,7 @@ export function Canvas({
   onDrawingEvent,
   onRemoteDrawingEvent,
 }: CanvasProps) {
-  const stageRef = useRef<Konva.Stage>(null);
+  const stageRef = (window as any).konvaStageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [canvasPosition, setCanvasPosition] = useState({ x: 0, y: 0 });

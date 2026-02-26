@@ -174,6 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { imageData, prompt } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+      if (!imageData) return res.status(400).json({ error: 'imageData is required' });
+
+      const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -182,17 +185,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contents: [{
             parts: [
               { text: prompt || "Analyze handwriting and provide text recognition with corrections." },
-              { inlineData: { mimeType: "image/png", data: imageData.split(',')[1] } }
+              { inlineData: { mimeType: "image/png", data: base64Data } }
             ]
           }]
         })
       });
 
       const data = await response.json();
-      if (data.candidates?.[0]) {
+      if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
         res.json({ success: true, result: data.candidates[0].content.parts[0].text });
       } else {
-        res.status(500).json({ error: 'No response from Gemini API' });
+        const geminiError = data.error?.message || data.promptFeedback?.blockReason || JSON.stringify(data);
+        console.error('Gemini API unexpected response:', geminiError);
+        res.status(500).json({ error: `Gemini API error: ${geminiError}` });
       }
     } catch (error) {
       console.error('Gemini API error:', error);

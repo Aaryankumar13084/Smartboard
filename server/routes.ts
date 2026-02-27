@@ -172,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/analyze-handwriting', async (req, res) => {
     try {
       const { imageData, prompt } = req.body;
-      const apiKey = "AIzaSyBnM8skfh_EEt9yhglsxvZ3JTztBV7wpbQ";
+      const apiKey = process.env.GEMINI_API_KEY ;
       if (!imageData) return res.status(400).json({ error: 'imageData is required' });
 
       const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData;

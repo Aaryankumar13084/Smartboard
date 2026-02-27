@@ -172,8 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/analyze-handwriting', async (req, res) => {
     try {
       const { imageData, prompt } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+      const apiKey = "AIzaSyBnM8skfh_EEt9yhglsxvZ3JTztBV7wpbQ";
       if (!imageData) return res.status(400).json({ error: 'imageData is required' });
 
       const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData;
@@ -208,8 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/smart-suggestions', async (req, res) => {
     try {
       const { content, context } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+      const apiKey = "AIzaSyBnM8skfh_EEt9yhglsxvZ3JTztBV7wpbQ";
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -236,8 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/improve-sketch', async (req, res) => {
     try {
       const { imageData, improvements } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+      const apiKey = "AIzaSyBnM8skfh_EEt9yhglsxvZ3JTztBV7wpbQ";
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -267,8 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/ai/review-drawing', async (req, res) => {
     try {
       const { imageData } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
+      const apiKey = "AIzaSyBnM8skfh_EEt9yhglsxvZ3JTztBV7wpbQ";
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
